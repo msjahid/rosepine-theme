@@ -1,0 +1,8 @@
+^.*\.otf$           # Ignore font files directly
+^font/              # Ignore the font directory (if fonts are outside inst/)
+^\.Rproj$           # Ignore RStudio project files
+^\.git$             # Ignore the Git directory
+^\.gitignore$       # Ignore the .gitignore file
+^README\.Rmd$       # Ignore README source file (keep only README.md)
+^\.DS_Store$        # Ignore macOS metadata files
+^__MACOSX/          # Ignore macOS-specific folders

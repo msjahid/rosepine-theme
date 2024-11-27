@@ -1,0 +1,17 @@
+Package: rosepineTheme
+Title: Rosé Pine-Inspired Theme for ggplot2
+Version: 0.1.0
+Authors@R: c(person("Jahid", "Hasan", email = "msjahid.ai@gmail.com", role = c("aut", "cre")))
+Description: A ggplot2 theme inspired by the Rosé Pine aesthetic with a dark background, vibrant colors, and the Source Code Pro font. Ideal for clean, elegant visualizations.
+Depends: R (>= 3.5.0)
+Imports:
+    ggplot2,
+    showtext,
+    sysfonts
+License: MIT
+Encoding: UTF-8
+LazyData: true
+URL: https://msjahid.me
+BugReports: https://github.com/msjahid/rosepine-theme/issues
+Acknowledgment: This theme is inspired by the Python Rosé Pine Theme (https://rosepinetheme.com/).
+RoxygenNote: 7.3.2
