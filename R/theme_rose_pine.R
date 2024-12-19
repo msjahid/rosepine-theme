@@ -2,12 +2,16 @@
 library(ggplot2)
 library(showtext)
 library(sysfonts)
+library(colorspace)  # For adjusting color lightness
 
 # Add Source Code Pro Font
 font_add("Source Code Pro", system.file("fonts", "SourceCodePro-Regular.otf", package = "rosepineTheme"))
 showtext_auto()
 
-# Rosé Pine Colors
+#' Rosé Pine Colors
+#'
+#' A list of Rosé Pine theme colors used for ggplot2 themes and scales.
+#' @export
 rose_pine_colors <- list(
   background = "#191724",
   grid = "#26233a",
@@ -220,7 +224,7 @@ rose_pine_colors <- list(
 #'
 #' @param base_size Base font size.
 #' @param base_family Base font family (default: "Source Code Pro").
-#' @param line_color Color for the lines in `geom_line()` (default: `#31748f` for teal).
+#' @param line_color Color for the lines in geom_line() (default: #31748f for teal).
 #'
 #' @return A ggplot2 theme object.
 #' @export
@@ -229,14 +233,15 @@ rose_pine_colors <- list(
 #' ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) +
 #'   geom_point() +
 #'   theme_rose_pine()
-theme_rose_pine <- function(base_size = 12, base_family = "Source Code Pro", line_color = "#31748f") {
+theme_rose_pine <- function(base_size = 12, base_family = "Source Code Pro", line_color = "#31748f", no_margins = FALSE) {
   theme_minimal(base_family = base_family, base_size = base_size) +
     theme(
       # Backgrounds
       panel.background = element_rect(fill = rose_pine_colors$background, color = NA),
       plot.background = element_rect(fill = rose_pine_colors$background, color = NA),
       legend.background = element_rect(fill = rose_pine_colors$background, color = NA),
-
+      strip.background = element_rect(fill = rose_pine_colors$grid, color = NA), # Facet strips
+      
       # Gridlines
       panel.grid.major = element_line(color = rose_pine_colors$grid, size = 0.4),
       panel.grid.minor = element_line(color = rose_pine_colors$grid, size = 0.2),
@@ -246,17 +251,28 @@ theme_rose_pine <- function(base_size = 12, base_family = "Source Code Pro", lin
       axis.text = element_text(size = 10, color = rose_pine_colors$text, family = base_family),
       axis.title = element_text(size = 12, color = rose_pine_colors$text, face = "bold", family = base_family),
       axis.ticks = element_line(color = rose_pine_colors$grid, size = 0.5),
+      axis.ticks.length = unit(5, "pt"), # Adjust axis tick length
 
       # Plot Titles
       plot.title = element_text(size = 16, face = "bold", color = rose_pine_colors$text, family = base_family, hjust = 0.5),
       plot.subtitle = element_text(size = 12, color = rose_pine_colors$text, family = base_family, hjust = 0.5),
+      plot.caption = element_text(size = 10, color = rose_pine_colors$text, family = base_family, hjust = 1),
 
       # Legend
       legend.text = element_text(size = 10, color = rose_pine_colors$text, family = base_family),
       legend.title = element_text(size = 11, color = rose_pine_colors$text, face = "bold", family = base_family),
+      legend.key = element_rect(fill = rose_pine_colors$background, color = NA), # Legend key background
+      legend.position = "right", # Default legend position
+      legend.box.background = element_rect(fill = rose_pine_colors$background, color = NA),
 
+      # Facet Titles
+      strip.text = element_text(size = 11, face = "bold", color = rose_pine_colors$text, family = base_family),
+      
       # Line Color (for geom_line)
-      line = element_line(color = line_color, size = 1)  # Default line color	
+      line = element_line(color = line_color, size = 1),
+
+      # Margins (Dynamic)
+      plot.margin = if (no_margins) margin(0, 0, 0, 0) else margin(10, 10, 10, 10),
     )
 }
 
@@ -682,4 +698,213 @@ scale_fill_rose_pine <- function(...) {
     rose_pine_colors$accent199,
     rose_pine_colors$accent200
   ), ...)
+}
+
+#' Default Histogram Function for Rosé Pine Theme
+#'
+#' A helper function for non-grouped histograms with dynamic fill and border colors.
+#'
+#' @param data_length The length of the data to calculate the number of bins.
+#' @param fill_color The fill color for the histogram bars.
+#' @param ... Additional arguments passed to `geom_histogram`.
+#' @return A ggplot2 `geom_histogram` layer.
+#' @export
+geom_histogram_default <- function(data_length, fill_color = NULL, ...) {
+  # Default fill color if none is provided
+  if (is.null(fill_color)) fill_color <- rose_pine_colors$accent1
+  
+  # Calculate the number of bins dynamically
+  bins <- round(sqrt(data_length))
+  
+  # Use an internal darkening function to compute line color
+  darken_color <- function(color, amount = 0.2) {
+    rgb_col <- col2rgb(color) / 255
+    darkened <- rgb(pmax(rgb_col[1] - amount, 0), 
+                    pmax(rgb_col[2] - amount, 0), 
+                    pmax(rgb_col[3] - amount, 0))
+    return(darkened)
+  }
+  
+  line_color <- darken_color(fill_color, amount = 0.2)  # Darken fill color by 20%
+  
+  # Return the ggplot histogram layer
+  geom_histogram(
+    bins = bins, 
+    fill = fill_color, 
+    color = line_color,  # Darkened color for the border
+    ...
+  )
+}
+
+#' Default KDE (Density) Function for Rosé Pine Theme
+#'
+#' A helper function for non-grouped KDE (density) plots with default fill and line color.
+#'
+#' @param alpha Transparency level for the fill (default: 0.7).
+#' @param line_color Color for the line (default: Rosé Pine accent5).
+#' @param fill_color Color for the fill (default: Rosé Pine accent1).
+#' @param size Line size (default: 1.2).
+#' @param ... Additional arguments passed to `geom_density`.
+#' @return A ggplot2 `geom_density` layer.
+#' @export
+geom_density_default <- function(alpha = 0.7, 
+                                 fill_color = rose_pine_colors$accent1, 
+                                 size = 1.2, ...) {
+  # Use colorspace to darken the fill_color dynamically
+  if (!is.null(fill_color)) {
+    line_color <- colorspace::darken(fill_color, amount = 0.2)  # Darken by 20%
+  } else {
+    line_color <- rose_pine_colors$accent5  # Default fallback color
+  }
+  
+  # Plot density with the adjusted line color
+  geom_density(aes(y = after_stat(density)), 
+               color = line_color, fill = fill_color, 
+               alpha = alpha, size = size, ...)
+
+}
+
+#' Default Pie Chart Function for Rosé Pine Theme (With Percentage Labels)
+#'
+#' @param data A data frame containing the categories and values.
+#' @param category_col The column name with categories (e.g., "Gender").
+#' @param value_col The column name with values/counts.
+#' @param color_palette A list of colors to fill the pie chart dynamically.
+#' @return A ggplot pie chart layer with percentages displayed.
+#' @export
+geom_pie_default <- function(data, category_col, value_col, color_palette = rose_pine_colors) {
+  # Load necessary libraries
+  library(ggplot2)
+  library(rlang)  # For !!sym()
+  library(dplyr)  # For percentage calculation
+  
+  # Calculate percentages
+  data <- data %>%
+    mutate(Percentage = !!sym(value_col) / sum(!!sym(value_col)) * 100)
+  
+  # Extract categories and assign dynamic colors
+  categories <- unique(data[[category_col]])
+  num_categories <- length(categories)
+  dynamic_colors <- unname(unlist(color_palette[paste0("accent", 1:num_categories)]))
+  names(dynamic_colors) <- categories
+  
+  # Base pie chart with percentage labels
+  pie_chart <- ggplot(data, aes(x = "", y = !!sym(value_col), fill = !!sym(category_col))) +
+    geom_bar(width = 1, stat = "identity", color = rose_pine_colors$background) +
+    coord_polar(theta = "y") +
+    scale_fill_manual(values = dynamic_colors) +
+    geom_text(aes(
+      label = paste0(round(Percentage, 1), "%")
+    ), position = position_stack(vjust = 0.5), 
+    color = rose_pine_colors$background,  # Use Rosé Pine background color for text
+    family = "Source Code Pro") +
+    theme_void() +
+    theme(
+      plot.background = element_rect(fill = rose_pine_colors$background, color = NA),
+      panel.background = element_rect(fill = rose_pine_colors$background, color = NA),
+      legend.background = element_rect(fill = rose_pine_colors$background, color = NA),
+      legend.key = element_rect(fill = rose_pine_colors$background, color = NA),
+      legend.text = element_text(color = rose_pine_colors$text, family = "Source Code Pro"),
+      legend.title = element_text(face = "bold", color = rose_pine_colors$text),
+      legend.position = "right",
+      # Ensure the entire plot area has the same background color
+      plot.margin = unit(c(0, 0, 0, 0), "cm")
+    ) +
+    labs(fill = category_col, x = NULL, y = NULL)
+
+  # Return the ggplot object
+  return(pie_chart)
+}
+
+
+#' Default Count Plot Function for Rosé Pine Theme
+#'
+#' A helper function to create a count plot with dynamic colors.
+#'
+#' @param data The data frame containing the data.
+#' @param category_col The name of the column with categories (e.g., "Gender").
+#' @param count_col The name of the column with counts.
+#' @param color_palette A list of colors from `rose_pine_colors` (default: accent colors).
+#' @param border_color Color for bar borders (default: darkened accent color).
+#' @return A list of ggplot2 layers for the count plot.
+#' @export
+geom_count_default <- function(data, category_col, count_col, color_palette = rose_pine_colors, border_color = NULL) {
+  # Extract unique categories and assign dynamic colors
+  categories <- unique(data[[category_col]])
+  num_categories <- length(categories)
+  dynamic_colors <- unname(unlist(color_palette[paste0("accent", 1:num_categories)]))
+  names(dynamic_colors) <- categories
+  
+  # Default border color (darkened first dynamic color)
+  if (is.null(border_color)) border_color <- colorspace::darken(dynamic_colors[1], 0.2)
+  
+  # Return ggplot layers dynamically
+  list(
+    geom_col(data = data, 
+             aes_string(x = category_col, y = count_col, fill = category_col), 
+             color = border_color),
+    scale_fill_manual(values = dynamic_colors),
+    guides(fill = guide_legend(title = category_col)),  # Explicit legend title
+    theme_rose_pine()
+  )
+}
+
+# Darken Color Function
+darken_color <- function(color, amount = 0.2) {
+  rgb_col <- col2rgb(color) / 255
+  darkened <- rgb(pmax(rgb_col[1] - amount, 0), 
+                  pmax(rgb_col[2] - amount, 0), 
+                  pmax(rgb_col[3] - amount, 0))
+  return(darkened)
+}
+
+#' Default Box Plot Function for Rosé Pine Theme
+#'
+#' A helper function for creating box plots with dynamic fill and border colors.
+#'
+#' @param data The data to plot (numeric vector or data frame column).
+#' @param fill_color The fill color for the box plot.
+#' @param ... Additional arguments passed to `geom_boxplot`.
+#' @return A ggplot2 `geom_boxplot` layer.
+#' @export
+geom_boxplot_default <- function(data, fill_color = NULL, ...) {
+  # Default fill color if none is provided
+  if (is.null(fill_color)) fill_color <- rose_pine_colors$accent1
+  
+  # Darken the fill color for the border
+  line_color <- darken_color(fill_color, amount = 0.2) 
+  
+  # Return the ggplot box plot layer
+  geom_boxplot(
+    data = data,
+    fill = fill_color, 
+    color = line_color,  # Darkened color for the border
+    ...
+  )
+}
+
+#' Default Violin Plot Function for Rosé Pine Theme
+#'
+#' A helper function for creating violin plots with dynamic fill and border colors.
+#'
+#' @param data The data to plot (data frame).
+#' @param x_col The column name for the x-axis (category).
+#' @param y_col The column name for the y-axis (numeric values).
+#' @param fill_color The fill color for the violin plot.
+#' @param line_color The border color for the violin plot (default is a darkened version of `fill_color`).
+#' @param ... Additional arguments passed to `geom_violin`.
+#' @return A ggplot2 `geom_violin` layer.
+#' @export
+geom_violin_default <- function(data, x_col, y_col, fill_color = NULL, line_color = NULL, ...) {
+  # Default fill color if none is provided
+  if (is.null(fill_color)) fill_color <- rose_pine_colors$accent1
+  
+  # Darken the fill color for the border
+  if (is.null(line_color)) {
+    line_color <- darken_color(fill_color, amount = 0.2)  
+  }
+  
+  # Return the ggplot violin plot layer with dynamic fill and border colors
+  ggplot(data, aes_string(x = x_col, y = y_col)) +
+    geom_violin(fill = fill_color, color = line_color, ...)  # Use dynamic colors
 }

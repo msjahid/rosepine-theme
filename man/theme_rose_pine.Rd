@@ -7,7 +7,8 @@
 theme_rose_pine(
   base_size = 12,
   base_family = "Source Code Pro",
-  line_color = "#31748f"
+  line_color = "#31748f",
+  no_margins = FALSE
 )
 }
 \arguments{
@@ -15,7 +16,7 @@ theme_rose_pine(
 
 \item{base_family}{Base font family (default: "Source Code Pro").}
 
-\item{line_color}{Color for the lines in `geom_line()` (default: `#31748f` for teal).}
+\item{line_color}{Color for the lines in geom_line() (default: #31748f for teal).}
 }
 \value{
 A ggplot2 theme object.
